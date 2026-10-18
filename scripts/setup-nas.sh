@@ -21,7 +21,8 @@ if [[ ! -s $CRED ]] || [[ ${1:-} == --reset-login ]]; then
 fi
 
 mkdir -p "$MNT"
-opts="credentials=$CRED,uid=$OWNER,gid=$OWNER,file_mode=0664,dir_mode=0775,vers=3.0,soft,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=15"
+# The ASUS router only speaks SMB 2.0.2 (and SMB1); vers=2.1+ fails with EINVAL
+opts="credentials=$CRED,uid=$OWNER,gid=$OWNER,file_mode=0664,dir_mode=0775,vers=2.0,soft,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=15"
 line="$SHARE $MNT cifs $opts 0 0"
 
 # Replace any previous entry for this mount point

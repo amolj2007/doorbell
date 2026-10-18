@@ -4,5 +4,5 @@ Description=Delete old Ring doorbell clips
 [Service]
 Type=oneshot
 User=amol
-EnvironmentFile=/home/amol/projects/doorbell/doorbell.env
+EnvironmentFile=/etc/doorbell.env
 ExecStart=/bin/sh -c 'find "$OUT_DIR" -type f -name "*.mp4" -mtime +"$KEEP_DAYS" -delete; find "$OUT_DIR" -mindepth 1 -type d -empty -delete'

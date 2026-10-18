@@ -20,6 +20,7 @@ mkdir -p clips
 chmod +x auth.sh
 
 echo "==> Installing systemd units"
+sudo install -m 644 doorbell.env                 /etc/doorbell.env
 sudo install -m 644 systemd/doorbell.service         /etc/systemd/system/
 sudo install -m 644 systemd/doorbell-cleanup.service /etc/systemd/system/
 sudo install -m 644 systemd/doorbell-cleanup.timer   /etc/systemd/system/
@@ -29,7 +30,11 @@ sudo systemctl start doorbell-cleanup.timer
 
 if [[ -f .token ]]; then
   sudo systemctl restart doorbell.service
-  echo "==> Started. Follow logs with: journalctl -u doorbell -f"
+  echo "==> Restarted; recent log:"
+  sleep 15
+  systemctl is-active doorbell.service || true
+  journalctl -u doorbell.service -n 15 --no-pager -o short-iso || true
+  echo "Follow logs with: journalctl -u doorbell -f"
 else
   echo
   echo "==> Installed and enabled at boot. One step left - log in to Ring:"

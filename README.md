@@ -23,16 +23,18 @@ cd ~/projects/doorbell
 ## Operate
 ```bash
 journalctl -u doorbell -f              # live log
-sudo systemctl restart doorbell        # after editing doorbell.env
+sudo systemctl restart doorbell        # after editing /etc/doorbell.env
 ls ~/projects/doorbell/clips/          # clips, one folder per day
 ```
 
-Settings live in `doorbell.env` (clip length, motion/ding toggles, retention).
+Settings live in `doorbell.env`, installed to `/etc/doorbell.env` (SELinux blocks
+systemd reading env files under /home). Edit the repo copy and redeploy, or edit
+`/etc/doorbell.env` directly with sudo (clip length, motion/ding toggles, retention).
 `doorbell-cleanup.timer` deletes clips older than `KEEP_DAYS` daily at 03:30.
 
 ## Deploy changes from Windows
-```bash
-scp record.mjs package.json doorbell.env install.sh auth.sh amol@192.168.50.71:projects/doorbell/
-scp systemd/* amol@192.168.50.71:projects/doorbell/systemd/
-ssh -t amol@192.168.50.71 'cd ~/projects/doorbell && ./install.sh'
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\Workspace\doorbell\deploy.ps1
 ```
+Copies the project (minus `.git`) and re-runs `install.sh`, which restarts the
+service and prints its recent log. Asks for the SSH password twice, then sudo.

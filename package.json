@@ -7,7 +7,8 @@
   "main": "record.mjs",
   "scripts": {
     "start": "node record.mjs",
-    "auth": "ring-auth-cli"
+    "auth": "ring-auth-cli",
+    "test": "node --test test/nas.test.mjs"
   },
   "engines": {
     "node": "^20 || ^22 || ^24"

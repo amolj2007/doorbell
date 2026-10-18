@@ -2,10 +2,10 @@
 // Ring keeps no video without a Ring Protect plan, so this captures live view
 // instead. Expect the first 2-4s of each event to be missed while the stream starts.
 import { RingApi } from 'ring-client-api'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, constants as fsc } from 'fs'
-import { access, copyFile, mkdir, rm } from 'fs/promises'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createNas } from './nas.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const TOKEN_FILE = process.env.TOKEN_FILE || path.join(HERE, '.token')
@@ -14,7 +14,8 @@ const TOKEN_FILE = process.env.TOKEN_FILE || path.join(HERE, '.token')
 const OUT_DIR = process.env.OUT_DIR || path.join(HERE, 'clips')
 // Network share root; clips move to NAS_DIR/<camera>/ (e.g. frontdoor, patio). Empty = local only
 const NAS_DIR = process.env.NAS_DIR || ''
-const NAS_TIMEOUT_MS = 10_000
+// How often clips left locally (NAS was down) are retried
+const SWEEP_MINUTES = Number(process.env.SWEEP_MINUTES || 5)
 const CLIP_SECONDS = Number(process.env.CLIP_SECONDS || 30)
 const RECORD_MOTION = process.env.RECORD_MOTION !== '0'
 const RECORD_DING = process.env.RECORD_DING !== '0'
@@ -44,38 +45,9 @@ ringApi.onRefreshTokenUpdated.subscribe(({ newRefreshToken }) => {
 })
 
 const busy = new Set()
-
-// "Front Door" -> "frontdoor"
-const folderFor = (camera) => camera.name.toLowerCase().replace(/[^a-z0-9]+/g, '')
-
-function withTimeout(promise, ms, what) {
-  let timer
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms}ms`)), ms)
-    }),
-  ]).finally(() => clearTimeout(timer))
-}
-
-// Move a finished clip to the NAS. On any failure the clip stays in the local folder.
-async function moveToNas(camera, localFile) {
-  if (!NAS_DIR) return
-  const destDir = path.join(NAS_DIR, folderFor(camera))
-  const dest = path.join(destDir, path.basename(localFile))
-  try {
-    // The NAS root must already exist (it is the mounted share); never create it
-    // locally, or clips would silently pile up on the Optiplex's own disk
-    await withTimeout(access(NAS_DIR, fsc.W_OK), NAS_TIMEOUT_MS, 'NAS check')
-    await mkdir(destDir, { recursive: true })
-    await withTimeout(copyFile(localFile, dest), 120_000, 'NAS copy')
-    await rm(localFile)
-    log(`[${camera.name}] moved to ${dest}`)
-  } catch (e) {
-    log(`[${camera.name}] NAS unavailable (${e?.code || e?.message || e}); kept ${localFile}`)
-    await rm(dest, { force: true }).catch(() => {})
-  }
-}
+// Local files still being recorded; the sweep leaves these alone
+const recording = new Set()
+const nas = createNas({ nasDir: NAS_DIR, outDir: OUT_DIR, log, active: recording })
 
 async function record(camera, reason) {
   if (busy.has(camera.id)) {
@@ -89,6 +61,7 @@ async function record(camera, reason) {
   mkdirSync(dir, { recursive: true })
   const file = path.join(dir, `${camera.name.replace(/\W+/g, '_')}_${reason}_${ts}.mp4`)
   let recorded = false
+  recording.add(file)
   try {
     log(`[${camera.name}] ${reason} -> ${file}`)
     await camera.recordToFile(file, CLIP_SECONDS)
@@ -99,8 +72,9 @@ async function record(camera, reason) {
   } finally {
     // Free the camera before the copy so a slow NAS never blocks the next event
     busy.delete(camera.id)
+    recording.delete(file)
   }
-  if (recorded) await moveToNas(camera, file)
+  if (recorded) await nas.moveToNas(file)
 }
 
 const cameras = await ringApi.getCameras()
@@ -120,6 +94,13 @@ for (const camera of cameras) {
   if (RECORD_DING) {
     camera.onDoorbellPressed.subscribe(() => record(camera, 'ding'))
   }
+}
+
+if (NAS_DIR) {
+  log(`clips move to ${NAS_DIR}; leftovers retried every ${SWEEP_MINUTES} min`)
+  const runSweep = () => nas.sweep().catch((e) => log(`sweep failed: ${e?.message || e}`))
+  setTimeout(runSweep, 30_000)
+  setInterval(runSweep, SWEEP_MINUTES * 60_000)
 }
 
 const shutdown = () => {

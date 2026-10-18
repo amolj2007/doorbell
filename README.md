@@ -31,7 +31,8 @@ is kept in `/etc/doorbell-nas.cred` (root-only).
 
 Each clip is recorded to the local `clips/` folder, then moved to
 `/mnt/nas/doorbell/<camera>/`. If the share is down or the copy fails, the clip
-stays in `clips/<date>/`.
+stays in `clips/<date>/`, and every `SWEEP_MINUTES` (default 5) the recorder retries
+any clips left there, moving them once the share is back. `npm test` covers this.
 
 ## Operate
 ```bash
@@ -46,8 +47,9 @@ systemd reading env files under /home). Edit the repo copy and redeploy, or edit
 `doorbell-cleanup.timer` deletes clips older than `KEEP_DAYS` daily at 03:30.
 
 ## Deploy changes from Windows
+The Optiplex copy is a git checkout of this repo (bare repo `~/repos/doorbell.git`,
+remote `optiplex` here). Commit, then:
 ```powershell
-powershell -ExecutionPolicy Bypass -File D:\Workspace\doorbell\deploy.ps1
+.\deploy.ps1            # push + pull + restart recorder (no sudo)
+.\deploy.ps1 -Install   # also re-run install.sh: systemd units, /etc/doorbell.env (sudo)
 ```
-Copies the project (minus `.git`) and re-runs `install.sh`, which restarts the
-service and prints its recent log. Asks for the SSH password twice, then sudo.

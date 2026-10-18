@@ -9,5 +9,6 @@ scp -r -q "$PSScriptRoot" "${Server}:$Stage"
 if ($LASTEXITCODE -ne 0) { throw 'scp failed' }
 
 Write-Host '==> Installing (SSH password, then sudo password)'
-$remote = "set -e; mkdir -p ~/projects/doorbell; cp -r $Stage/. ~/projects/doorbell/; rm -rf $Stage; cd ~/projects/doorbell; bash install.sh; if [ ! -f .token ]; then bash auth.sh; fi"
+# .git is not deployed: its read-only object files make a second cp fail
+$remote = "set -e; mkdir -p ~/projects/doorbell; rm -rf $Stage/.git ~/projects/doorbell/.git; cp -r $Stage/. ~/projects/doorbell/; rm -rf $Stage; cd ~/projects/doorbell; bash install.sh; if [ ! -f .token ]; then bash auth.sh; fi"
 ssh -t $Server $remote

@@ -26,6 +26,9 @@ const ringApi = new RingApi({
   refreshToken: readFileSync(TOKEN_FILE, 'utf8').trim(),
   // Motion/ding events arrive as push notifications; no polling needed
   cameraStatusPollingSeconds: 120,
+  // Library debug logging shows push notifications it can't route
+  // (also enabled by a .debug file, which needs no sudo unlike /etc/doorbell.env)
+  debug: process.env.DEBUG === '1' || existsSync(path.join(HERE, '.debug')),
 })
 
 // Ring rotates the refresh token; persist the new one or auth breaks on next restart
@@ -66,6 +69,9 @@ if (cameras.length === 0) {
 
 for (const camera of cameras) {
   log(`watching ${camera.name} (battery ${camera.batteryLevel ?? '?'}%)`)
+  camera.onNewNotification.subscribe((n) => {
+    log(`[${camera.name}] push: ${n?.android_config?.category ?? 'unknown'}`)
+  })
   if (RECORD_MOTION) {
     camera.onMotionDetected.subscribe((motion) => motion && record(camera, 'motion'))
   }

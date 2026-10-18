@@ -47,7 +47,8 @@ systemd reading env files under /home). Edit the repo copy and redeploy, or edit
 `doorbell-cleanup.timer` deletes clips older than `KEEP_DAYS` daily at 03:30.
 
 ## Deploy changes from Windows
-The Optiplex copy is a git checkout of this repo (bare repo `~/repos/doorbell.git`,
+Source: https://github.com/amolj2007/doorbell (private). The Optiplex copy is a git
+checkout of this repo (bare repo `~/repos/doorbell.git`,
 remote `optiplex` here). Commit, then:
 ```powershell
 .\deploy.ps1            # push + pull + restart recorder (no sudo)

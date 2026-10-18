@@ -9,7 +9,9 @@ Set-Location $PSScriptRoot
 
 if (git status --porcelain) { Write-Warning 'Uncommitted changes will not be deployed.' }
 
-Write-Host '==> Pushing to the Optiplex'
+Write-Host '==> Pushing to GitHub and the Optiplex'
+git push origin main
+if ($LASTEXITCODE -ne 0) { Write-Warning 'GitHub push failed; deploying anyway' }
 git push optiplex main
 if ($LASTEXITCODE -ne 0) { throw 'git push failed' }
 

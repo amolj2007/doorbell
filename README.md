@@ -20,6 +20,19 @@ cd ~/projects/doorbell
 ./auth.sh         # one-time Ring login (email, password, 2FA) -> .token, starts service
 ```
 
+## Network storage (router USB drive)
+```bash
+sudo bash scripts/setup-nas.sh                 # asks for the router share login once
+sudo bash scripts/setup-nas.sh --reset-login   # change the stored login
+```
+Mounts `//192.168.50.1/optiplex` at `/mnt/nas` (on first access, `nofail` so boot
+never waits on it) and creates `doorbell/frontdoor` and `doorbell/patio`. The login
+is kept in `/etc/doorbell-nas.cred` (root-only).
+
+Each clip is recorded to the local `clips/` folder, then moved to
+`/mnt/nas/doorbell/<camera>/`. If the share is down or the copy fails, the clip
+stays in `clips/<date>/`.
+
 ## Operate
 ```bash
 journalctl -u doorbell -f              # live log

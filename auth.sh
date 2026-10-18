@@ -19,5 +19,5 @@ echo "Saved token to $(pwd)/.token"
 
 sudo systemctl restart doorbell.service
 sleep 8
-systemctl --no-pager status doorbell.service | head -15
+systemctl --no-pager --lines=10 status doorbell.service || true
 echo "Follow logs with: journalctl -u doorbell -f"

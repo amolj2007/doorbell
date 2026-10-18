@@ -11,7 +11,7 @@ command -v node   >/dev/null || pkgs+=(nodejs npm)
 command -v ffmpeg >/dev/null || pkgs+=(ffmpeg-free)
 if ((${#pkgs[@]})); then sudo dnf install -y "${pkgs[@]}"; fi
 node --version
-ffmpeg -version | head -1
+ffmpeg -version | sed -n 1p   # not head: its early exit is SIGPIPE under pipefail
 
 echo "==> Installing node dependencies"
 npm install --omit=dev --no-audit --no-fund

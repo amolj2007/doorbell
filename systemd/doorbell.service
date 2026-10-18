@@ -1,0 +1,20 @@
+[Unit]
+Description=Ring doorbell motion recorder
+After=network-online.target
+Wants=network-online.target
+# Don't start (and crash-loop) until the Ring token has been created by auth.sh
+ConditionPathExists=/home/amol/projects/doorbell/.token
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=amol
+WorkingDirectory=/home/amol/projects/doorbell
+EnvironmentFile=/home/amol/projects/doorbell/doorbell.env
+ExecStart=/usr/bin/node /home/amol/projects/doorbell/record.mjs
+Restart=always
+RestartSec=30
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
